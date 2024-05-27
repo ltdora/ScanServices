@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Options;
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
 using MongoDB.Driver;
 using Quartz;
 using System;
@@ -9,30 +8,20 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
+using SharpCompress.Common;
 
-namespace ScanServices.Scan
+namespace ScanServices.ScanJob
 {
-    public class FolderScanJob : IJob
+    public class ScanScheduleJob : IJob
     {
         private static HashSet<string> processedFiles = new HashSet<string>();
         private readonly string folderPath = "C:\\Users\\Admin\\Desktop\\QuantzScan";
-        private readonly string processedFolderPath = "C:\\Users\\Admin\\Desktop\\QuantzScan\\readed";
-
-        private readonly IMongoCollection<BsonDocument> _collection;
-
-        public FolderScanJob()
-        {
-            var client = new MongoClient("mongodb+srv://datlt:Laitiendat1312.@helloworld.bbqg5uv.mongodb.net/?retryWrites=true&w=majority&appName=HelloWorld");
-            var database = client.GetDatabase("HelloMongo");
-            _collection = database.GetCollection<BsonDocument>("Users");
-        }
+        private readonly string processedFolderPath = "C:\\Users\\Admin\\Desktop\\QuantzScan\\queues";
 
         public Task Execute(IJobExecutionContext context)
         {
             if (Directory.Exists(folderPath))
             {
-                // Tạo thư mục đích nếu chưa tồn tại
                 if (!Directory.Exists(processedFolderPath))
                 {
                     Directory.CreateDirectory(processedFolderPath);
@@ -44,27 +33,7 @@ namespace ScanServices.Scan
                     if (!processedFiles.Contains(file))
                     {
                         var fileName = Path.GetFileName(file);
-                        Console.WriteLine($"Read file: {fileName}");
 
-                        // Đọc nội dung file
-                        string[] content = File.ReadAllLines(file);
-                        string field = content[0];
-                        string value = content[1];
-
-                        var document = new BsonDocument { { field, value } };
-                        Console.WriteLine(document);
-
-                        //_collection.InsertOneAsync(document);
-
-                        var getall = _collection.Find(_ => true).ToList();
-                        foreach (var item in getall)
-                        {
-                            Console.WriteLine(item);
-                        }
-
-                        Console.WriteLine($"Saved {fileName} to Database");
-
-                        // Di chuyển file sau khi đã xử lý xong
                         var destFile = Path.Combine(processedFolderPath, fileName);
 
                         try
@@ -72,7 +41,6 @@ namespace ScanServices.Scan
                             File.Move(file, destFile);
                             Console.WriteLine($"File moved to: {destFile}");
 
-                            // Thêm file vào danh sách đã xử lý
                             processedFiles.Add(destFile);
                         }
                         catch (Exception ex)

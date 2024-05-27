@@ -1,10 +1,13 @@
-﻿using Quartz.Impl;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
+using Quartz.Impl;
 using Quartz;
 using System;
 using System.Threading.Tasks;
-using ScanServices.Scan;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using ScanServices.ScanJob;
+using System.IO;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ScanServices
 {
@@ -12,36 +15,61 @@ namespace ScanServices
     {
         static async Task Main(string[] args)
         {
-            var client = new MongoClient("mongodb+srv://datlt:Laitiendat1312.@helloworld.bbqg5uv.mongodb.net/?retryWrites=true&w=majority&appName=HelloWorld");
-            var database = client.GetDatabase("HelloMongo");
-            var collection = database.GetCollection<BsonDocument>("Users");
+            Task task1 = Task.Run(() => ScanScheduleJob());
+            Task task2 = Task.Run(() => ScanQueue());
 
-            // Cấu hình Quartz.NET
+            await Task.WhenAll(task1, task2);
+        }
+        static async Task ScanScheduleJob()
+        {
+            //var client = new MongoClient("mongodb+srv://datlt:Laitiendat1312.@helloworld.bbqg5uv.mongodb.net/?retryWrites=true&w=majority&appName=HelloWorld");
+            //var database = client.GetDatabase("HelloMongo");
+            //var collection = database.GetCollection<BsonDocument>("CDRs");
+
             IScheduler scheduler = await StdSchedulerFactory.GetDefaultScheduler();
             await scheduler.Start();
 
-            // Định nghĩa công việc và liên kết với lớp FolderScanJob
-            IJobDetail job = JobBuilder.Create<FolderScanJob>()
+            IJobDetail job = JobBuilder.Create<ScanScheduleJob>()
                 .WithIdentity("folderScanJob", "group1")
                 .Build();
-
-            // Tạo lịch trình để chạy công việc
             ITrigger trigger = TriggerBuilder.Create()
                 .WithIdentity("trigger1", "group1")
                 .StartNow()
                 .WithSimpleSchedule(x => x
-                    .WithIntervalInSeconds(3) // Chạy mỗi 3 giây
+                    .WithIntervalInSeconds(3)
                     .RepeatForever())
                 .Build();
 
-            // Liên kết công việc và lịch trình với Scheduler
             await scheduler.ScheduleJob(job, trigger);
 
-            // Giữ ứng dụng console chạy
             Console.WriteLine("Press [Enter] to close the application.");
             Console.ReadLine();
 
             await scheduler.Shutdown();
+        }
+        static void ScanQueue()
+        {
+            string folderPath = @"C:\Users\Admin\Desktop\QuantzScan\queues";
+
+            if (!Directory.Exists(folderPath))
+            {
+                Console.WriteLine("Folder does not exist");
+                return;
+            }
+
+            FileSystemWatcher watcher = new FileSystemWatcher
+            {
+                Path = folderPath,
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
+                Filter = "*.*"
+            };
+
+            watcher.Created += ScanJob.ScanQueue.ReadFileCreated;
+
+            watcher.EnableRaisingEvents = true;
+
+            Console.ReadLine();
+
         }
     }
 }
