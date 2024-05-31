@@ -15,17 +15,13 @@ namespace ScanServices
     {
         static async Task Main(string[] args)
         {
-            Task task1 = Task.Run(() => ScanScheduleJob());
-            Task task2 = Task.Run(() => ScanQueue());
+            Task task1 = Task.Run(() => ScanQueue());
+            Task task2 = Task.Run(() => ScanScheduleJob());
 
             await Task.WhenAll(task1, task2);
         }
         static async Task ScanScheduleJob()
         {
-            //var client = new MongoClient("mongodb+srv://datlt:Laitiendat1312.@helloworld.bbqg5uv.mongodb.net/?retryWrites=true&w=majority&appName=HelloWorld");
-            //var database = client.GetDatabase("HelloMongo");
-            //var collection = database.GetCollection<BsonDocument>("CDRs");
-
             IScheduler scheduler = await StdSchedulerFactory.GetDefaultScheduler();
             await scheduler.Start();
 
@@ -69,7 +65,6 @@ namespace ScanServices
             watcher.EnableRaisingEvents = true;
 
             Console.ReadLine();
-
         }
     }
 }
