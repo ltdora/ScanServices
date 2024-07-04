@@ -15,12 +15,12 @@ namespace ScanServices
     {
         static async Task Main(string[] args)
         {
-            Task task1 = Task.Run(() => ScanQueue());
-            Task task2 = Task.Run(() => ScanScheduleJob());
+            Task task1 = Task.Run(() => ScanQueueFolder());
+            Task task2 = Task.Run(() => ScanSchedule());
 
             await Task.WhenAll(task1, task2);
         }
-        static async Task ScanScheduleJob()
+        static async Task ScanSchedule()
         {
             IScheduler scheduler = await StdSchedulerFactory.GetDefaultScheduler();
             await scheduler.Start();
@@ -32,7 +32,8 @@ namespace ScanServices
                 .WithIdentity("trigger1", "group1")
                 .StartNow()
                 .WithSimpleSchedule(x => x
-                    .WithIntervalInSeconds(3)
+                    //.WithIntervalInSeconds(3)
+                    .WithIntervalInMinutes(5)
                     .RepeatForever())
                 .Build();
 
@@ -43,7 +44,7 @@ namespace ScanServices
 
             await scheduler.Shutdown();
         }
-        static void ScanQueue()
+        static void ScanQueueFolder()
         {
             string folderPath = @"C:\Users\Admin\Desktop\QuantzScan\queues";
 

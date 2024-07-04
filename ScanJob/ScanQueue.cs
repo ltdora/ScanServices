@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.Core.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,22 +12,24 @@ namespace ScanServices.ScanJob
 {
     public static class ScanQueue
     {
+        public static string myConnectionString { get; set; } = "mongodb+srv://datlt:Laitiendat1312.@helloworld.bbqg5uv.mongodb.net/?retryWrites=true&w=majority&appName=HelloWorld";
+        //public static string myConnectionString { get; set; } = "mongodb://localhost:27017/";
+
         public static void ReadFileCreated(object sender, FileSystemEventArgs e)
         {
             HashSet<string> processedFiles = new HashSet<string>();
             string folderPath = "C:\\Users\\Admin\\Desktop\\QuantzScan\\queues";
-            string processedFolderPath = "C:\\Users\\Admin\\Desktop\\QuantzScan";
+            string processedFolderPath = "C:\\Users\\Admin\\Desktop\\QuantzScan\\readed";
             IMongoCollection<BsonDocument> _CDRscollection;
             IMongoCollection<BsonDocument> _CDRsLogcollection;
+            IMongoCollection<BsonDocument> _LastCDRIndex;
 
-            //var client = new MongoClient("mongodb+srv://datlt:Laitiendat1312.@helloworld.bbqg5uv.mongodb.net/?retryWrites=true&w=majority&appName=HelloWorld");
-            //var database = client.GetDatabase("HelloMongo");
-
-            var client = new MongoClient("mongodb://localhost:27017/");
+            var client = new MongoClient(myConnectionString);
             var database = client.GetDatabase("CDRsReport");
 
             _CDRscollection = database.GetCollection<BsonDocument>("CDRs");
             _CDRsLogcollection = database.GetCollection<BsonDocument>("CDRsLog");
+            _LastCDRIndex = database.GetCollection<BsonDocument>("LastCDRIndex");
 
             try
             {
@@ -66,13 +69,20 @@ namespace ScanServices.ScanJob
                                 "CallID", "Alert_ms", "Alert_seconds", "Orig_Gateway", "Dest_Gateway", "Pres_Preferred", "Pres_Asserted", "Cause",
                                 "Flags", "Scope", "Acc_NumberPrivate", "CallType", "BillingInfo", "SIPCall-ID", "Q_850Cause", "Dest_Acc_ID",
                                 "Dest_Acc_Name", "Dest_Addr_ID", "Dest_Addr_Number", "OutboundDest_" };
-                            
+
                             //for (int i = 0; i < cols; i++)
                             //{
-                            //    fields[i] = csvData[0, i].Replace(" ","");
+                            //    fields[i] = csvData[0, i];
                             //}
 
-                            var document = new BsonDocument();
+                            var recordindex = _CDRscollection.EstimatedDocumentCount();
+
+                            //_LastCDRIndex.DeleteMany(FilterDefinition<BsonDocument>.Empty);
+
+                            //var lastcdrindex = new BsonDocument { { "index", recordindex } };
+                            //_LastCDRIndex.InsertOne(lastcdrindex);
+
+                            var document = new BsonDocument { { "index", recordindex + 1 } };
 
                             var allDocument = new List<BsonDocument>();
 
@@ -84,7 +94,8 @@ namespace ScanServices.ScanJob
                                     document.Merge(mergedoc, true);
                                 }
                                 allDocument.Add(document);
-                                document = new BsonDocument();
+                                recordindex++;
+                                document = new BsonDocument { { "index", recordindex + 1 } };
                             }
                             _CDRscollection.InsertMany(allDocument);
 
@@ -96,15 +107,14 @@ namespace ScanServices.ScanJob
                             //string[] fieldslog = new string[] { "TypeWork", "FileName", "TimeStartRecord",
                             //"TimeEndRecord", "NumberOfRecord", "TotalNumberOfRecord", "Status", "Error" };
 
-                            var totalrecord = _CDRscollection.EstimatedDocumentCount();
 
                             var recordlogdocument = new BsonDocument() { { "TypeWork", "Write" }, { "FileName", fileName },
                                 { "TimeStartRecord", TimeStart }, { "TimeEndRecord", TimeEnd }, { "NumberOfRecord" , numberofrecord},
-                                {"TotalNumberOfRecord", totalrecord }, { "Status", "Success" } };
+                                {"TotalNumberOfRecord", recordindex }, { "Status", "Success" } };
 
                             _CDRsLogcollection.InsertOne(recordlogdocument);
 
-                            Console.WriteLine($"Number of document: {totalrecord}");
+                            Console.WriteLine($"Number of document: {recordindex}");
                             Console.WriteLine($"Saved {fileName} to Database");
 
                             DisposeClient(client);
@@ -113,7 +123,6 @@ namespace ScanServices.ScanJob
                                 if (client != null)
                                 {
                                     client = null;
-                                    Console.WriteLine("Disconnected to MongoDB.");
                                 }
                             }
 
@@ -121,7 +130,8 @@ namespace ScanServices.ScanJob
                             try
                             {
                                 File.Move(file, destFile);
-                                Console.WriteLine($"File moved to: {destFile}");
+                                Console.WriteLine($"Readed {fileName}");
+                                //Console.WriteLine($"File moved to: {destFile}");
 
                                 processedFiles.Add(destFile);
                             }
