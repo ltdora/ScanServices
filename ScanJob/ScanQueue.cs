@@ -20,12 +20,13 @@ namespace ScanServices.ScanJob
             HashSet<string> processedFiles = new HashSet<string>();
             string folderPath = "C:\\Users\\Admin\\Desktop\\QuantzScan\\queues";
             string processedFolderPath = "C:\\Users\\Admin\\Desktop\\QuantzScan\\readed";
+            string errorFolderPath = "C:\\Users\\Admin\\Desktop\\QuantzScan\\error";
             IMongoCollection<BsonDocument> _CDRscollection;
             IMongoCollection<BsonDocument> _CDRsLogcollection;
             IMongoCollection<BsonDocument> _LastCDRIndex;
 
             var client = new MongoClient(myConnectionString);
-            var database = client.GetDatabase("CDRsReport");
+            var database = client.GetDatabase("CDRsReport2");
 
             _CDRscollection = database.GetCollection<BsonDocument>("CDRs");
             _CDRsLogcollection = database.GetCollection<BsonDocument>("CDRsLog");
@@ -61,6 +62,7 @@ namespace ScanServices.ScanJob
                                 }
                             }
 
+                            // static fields
                             string[] fields = new string[] { "CallStart_ms", "CallStart", "CallEnd_ms", "CallEnd",
                                 "Duration", "Acc_AccountID", "Acc_AddressID", "Acc_TenantID", "Acc_Number", "Acc_Tenant",
                                 "Acc_Name", "Acc_Address", "Acc_AddressPublic", "Acc_AddressCombined", "Orig_Number", "Dest_Name",
@@ -70,9 +72,11 @@ namespace ScanServices.ScanJob
                                 "Flags", "Scope", "Acc_NumberPrivate", "CallType", "BillingInfo", "SIPCall-ID", "Q_850Cause", "Dest_Acc_ID",
                                 "Dest_Acc_Name", "Dest_Addr_ID", "Dest_Addr_Number", "OutboundDest_" };
 
+                            // dynamic fields
+                            //string[] fields = new string[cols];
                             //for (int i = 0; i < cols; i++)
                             //{
-                            //    fields[i] = csvData[0, i];
+                            //    fields[i] = csvData[0, i].Replace(' ', '_').Replace(".", "_").Replace("__", "_");
                             //}
 
                             var recordindex = _CDRscollection.EstimatedDocumentCount();
@@ -127,6 +131,8 @@ namespace ScanServices.ScanJob
                             }
 
                             var destFile = Path.Combine(processedFolderPath, fileName);
+                            var errorFile = Path.Combine(errorFolderPath, fileName);
+
                             try
                             {
                                 File.Move(file, destFile);
@@ -141,6 +147,7 @@ namespace ScanServices.ScanJob
                                 { "TimeStartRecord", TimeStart }, { "TimeEndRecord", TimeEnd }, { "Error", ex.Message } };
 
                                 _CDRsLogcollection.InsertOne(recordlogdocument);
+                                File.Move(file, errorFile);
                                 Console.WriteLine($"Error moving file {fileName}: {ex.Message}");
                             }
                         }
