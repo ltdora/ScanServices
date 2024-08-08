@@ -32,8 +32,8 @@ namespace ScanServices
                 .WithIdentity("trigger1", "group1")
                 .StartNow()
                 .WithSimpleSchedule(x => x
-                    //.WithIntervalInSeconds(3)
-                    .WithIntervalInMinutes(5)
+                    .WithIntervalInSeconds(3)
+                    //.WithIntervalInMinutes(5)
                     .RepeatForever())
                 .Build();
 

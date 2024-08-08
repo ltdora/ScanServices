@@ -26,7 +26,7 @@ namespace ScanServices.ScanJob
             IMongoCollection<BsonDocument> _LastCDRIndex;
 
             var client = new MongoClient(myConnectionString);
-            var database = client.GetDatabase("CDRsReport2");
+            var database = client.GetDatabase("CDRsReport-UAT");
 
             _CDRscollection = database.GetCollection<BsonDocument>("CDRs");
             _CDRsLogcollection = database.GetCollection<BsonDocument>("CDRsLog");
